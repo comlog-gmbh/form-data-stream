@@ -407,47 +407,7 @@ class FormDataStream {
 				);
 			},
 			_end
-		)
-
-
-		/*this.forEach(function (row, fname) {
-			_this._getFields(fname, row.value).forEach(function (val, key) {
-				writable.write(bp + _this.boundary + br);
-				if (row.type == TYPE_FILE) {
-					writable.write('Content-Disposition: form-data; name="' + key + '"; filename="' + row.filename + '"' + br);
-					writable.write('Content-Type: ' + row.contentType + br + br);
-					let fd = fs.openSync(val, 'r');
-					let buf = Buffer.alloc(4096);
-					let pos = 0;
-					let len = 0;
-					do {
-						len = fs.readSync(fd, buf);
-						pos = pos + len;
-						writable.write(buf.slice(0, len));
-					} while (len > 0);
-
-					writable.write(br);
-				}
-				else if (row.type == TYPE_FILE_STREAM) {
-					writable.write('Content-Disposition: form-data; name="' + key + '"; filename="' + row.filename + '"' + br);
-					writable.write('Content-Type: ' + row.contentType + br + br);
-					row.value.pipe(writable);
-					writable.write(br);
-				}
-				else if (row.type == TYPE_STREAM) {
-					writable.write("Content-Disposition: form-data; name=\"" + key + '"' + br + br);
-					row.value.pipe(writable);
-					writable.write(br);
-				}
-				else {
-					writable.write("Content-Disposition: form-data; name=\"" + key + '"' + br + br);
-					writable.write(val + br);
-				}
-			});
-		})
-		//----FormDataStream...--\r\n
-		writable.write(bp + this.boundary + bp + br);
-		 */
+		);
 	}
 
 	_pipeFormURL(writable: Writable) {
