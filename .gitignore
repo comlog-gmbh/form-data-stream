@@ -1,0 +1,6 @@
+/package-lock.json
+/.idea
+/node_modules
+/test/utest.js
+/test/upload.js
+/test/upload.txt

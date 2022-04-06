@@ -1,0 +1,33 @@
+{
+  "name": "form-data-stream",
+  "version": "1.0.0",
+  "description": "Form data writer compatible with default http, https and atomics-http",
+  "main": "dist/main.js",
+  "scripts": {
+    "test": "node test/test.js",
+    "build": "tsc",
+    "test-lint": "eslint src --ext .js,.ts",
+    "prepublishOnly": "npm run build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/comlog-gmbh/form-data-stream.git"
+  },
+  "keywords": [
+    "HTTP",
+    "HTTPS",
+    "post-data",
+    "form-data",
+    "fileupload"
+  ],
+  "author": "COMLOG GmbH",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/comlog-gmbh/form-data-stream/issues"
+  },
+  "homepage": "https://github.com/comlog-gmbh/form-data-stream#readme",
+  "devDependencies": {
+    "@types/node": "^17.0.21",
+    "stream-sync": "^1.1.2"
+  }
+}
