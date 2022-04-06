@@ -2,14 +2,17 @@
 import { Writable } from "stream";
 import { Readable } from "stream";
 import { FormDataItem } from './FormDataItem';
-declare class FormDataStream {
+import EventEmitter from "events";
+declare class FormDataStream extends EventEmitter {
     private contentType;
     private boundary;
     private defaultMimeType;
     private data;
+    private writable?;
     constructor(data?: any);
     toString(encoding?: BufferEncoding): string;
     forEach(fn: (val: any, key: string) => boolean | void): void;
+    end(): void;
     /**
      * get field
      * @param {string} fname
@@ -36,8 +39,10 @@ declare class FormDataStream {
     headers(headers?: any): Object | any;
     _pipeFormDataSync(writable: Writable): void;
     _pipeFormData(writable: Writable, cb: (err: Error | null) => void): void;
-    _pipeFormURL(writable: Writable): void;
-    _pipeFormJSON(writable: Writable): void;
+    _pipeFormURL(writable: Writable, cb: (err: Error | null) => void): void;
+    _pipeFormURLSync(writable: Writable): void;
+    _pipeFormJSON(writable: Writable, cb: (err: Error | null) => void): void;
+    _pipeFormJSONSync(writable: Writable): void;
     pipe(writable: Writable, cb?: (err: Error | null) => void): Writable;
     pipeSync(writable: Writable): Writable;
 }

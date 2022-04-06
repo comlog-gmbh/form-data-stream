@@ -11,6 +11,7 @@ class URLWriter extends stream_1.Writable {
         if (Buffer.isBuffer(chunk) && encoding != 'buffer') {
             chunk = chunk.toString(encoding);
         }
+        console.info('write: ' + chunk);
         this.writer.write(encodeURIComponent(chunk));
         if (callback)
             callback();

@@ -5,6 +5,7 @@ var StreamSync = require('stream-sync');
 const http = require('http');
 const FormDataStream = require('../');
 var StreamSync = require('stream-sync');
+const BufferWriter = require("../dist/BufferWriter");
 
 var postData = new FormDataStream();
 //postData.set('test1', 'abcöäü§$%&');
@@ -12,9 +13,10 @@ var postData = new FormDataStream();
 //postData.set('test3', {sub1: 'abc', sub2: 'xyz'});
 //postData.set('test4', ['abc', {sub1: 'abc', sub2: 'xyz'}]);
 postData.set('input', 'test+üöälpokokasd+test');
-let rs1 = new StreamSync.FileReadStreamSync('./upload.txt');
+//let rs1 = new StreamSync.FileReadStreamSync('./upload.txt');
+let rs1 = new fs.createReadStream('./upload.txt');
 rs1.setEncoding('utf8');
-postData.set('text', rs1);
+postData.setFile('text', rs1);
 /*let rs2 = new StreamSync.FileReadStreamSync('./upload.txt');
 postData.setFile('file', rs2);*/
 
@@ -31,7 +33,6 @@ console.info(options.headers);
 //console.info(postData.toString());
 
 var req = http.request('http://localtest.speedorder.de/ar/index.php', options);
-postData.pipe(req);
 
 req.on('response', function (res) {
 	var data = '';
@@ -45,8 +46,15 @@ req.on('response', function (res) {
 	});
 });
 
+let str = new BufferWriter();
 
-req.end();
+postData.pipe(req);
+
+postData.on('end', function () {
+	console.info(str.toString());
+})
+
+//req.end();
 /**/
 
 /*

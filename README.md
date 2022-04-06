@@ -1,4 +1,8 @@
 # form-data-stream
+Supports application/x-www-form-urlencoded, multipart/form-data and application/json.
+Synchronous and asynchronous methods. 
+
+> Content-length not supported for streams but streams are supported
 
 ## Examples
 ### Simple POST Request
@@ -25,9 +29,6 @@ req.on('response', function (res) {
 
 // Write date
 postData.pipe(req);
-
-// Send Request
-req.end();
 ```
 
 ### Komplex POST Request
@@ -55,9 +56,6 @@ req.on('response', function (res) {
 
 // Write date
 postData.pipe(req);
-
-// Send Request
-req.end();
 ```
 
 ### Upload file Request
@@ -82,19 +80,16 @@ req.on('response', function (res) {
 
 // Write date
 postData.pipe(req);
-
-// Send Request
-req.end();
 ```
 
-### Syncronous
+### Field data from stream
 ```javascript
 const https = require('https');
 const {FormDataStreamSync} = require('form-data-stream');
 
 var postData = new FormDataStreamSync();
-postData.set('test1', 'abcöäü§$%&');
-postData.setFile('file', './upload.txt');
+var stream = fs.createReadStream('./upload.txt');
+postData.set('field_name', stream);
 
 var options = {
 	method: 'POST',
@@ -103,13 +98,38 @@ var options = {
 
 var req = https.request('https://localhost/upload.php', options);
 
-req.on('response', function (res) {
-	// ... do somthing
-});
+// Write date
+postData.pipe(req);
+```
+
+### Syncronous
+```javascript
+const https = require('https');
+const {FormDataStreamSync} = require('form-data-stream');
+
+var postData = new FormDataStreamSync();
+
+// Fileupload
+postData.setFile('file', './upload.txt');
+
+// File from stream
+// Sync stream required
+var StreamSync = require('stream-sync');
+let stream = new StreamSync.FileReadStreamSync('./upload.txt');
+postData.setFile('file2', stream);
+
+// Field from stream
+var StreamSync = require('stream-sync');
+let fstream = new StreamSync.FileReadStreamSync('./upload.txt');
+postData.set('field_from_stream', fstream);
+
+var options = {
+	method: 'POST',
+	headers: postData.headers()
+};
+
+var req = https.request('https://localhost/upload.php', options);
 
 // Write date
 postData.pipeSync(req);
-
-// Send Request
-req.end();
 ```

@@ -18,7 +18,9 @@
     "HTTPS",
     "post-data",
     "form-data",
-    "fileupload"
+    "fileupload",
+	"sync",
+	"async"
   ],
   "author": "COMLOG GmbH",
   "license": "ISC",

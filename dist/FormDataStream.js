@@ -27,13 +27,15 @@ const BufferWriter_1 = __importDefault(require("./BufferWriter"));
 const URLWriter_1 = __importDefault(require("./URLWriter"));
 const stream_1 = require("stream");
 const FormDataItem_1 = require("./FormDataItem");
+const events_1 = __importDefault(require("events"));
 function forEachObjectAsync(obj, handle, end) {
     if (!obj)
         end();
     let keys = Object.keys(obj);
     let _loop = function () {
-        if (keys.length == 0)
+        if (keys.length == 0) {
             end();
+        }
         let key = keys.shift();
         if (typeof key !== 'undefined') {
             handle(obj[key], key, _loop);
@@ -49,8 +51,9 @@ function forEachObjectSync(obj, handle) {
             break;
     }
 }
-class FormDataStream {
+class FormDataStream extends events_1.default {
     constructor(data) {
+        super();
         this.contentType = 'auto';
         this.defaultMimeType = 'binary/octet-stream';
         this.data = {};
@@ -62,7 +65,7 @@ class FormDataStream {
     }
     toString(encoding) {
         let writer = new BufferWriter_1.default();
-        this.pipe(writer);
+        this.pipeSync(writer);
         return writer.toString(encoding);
     }
     forEach(fn) {
@@ -71,6 +74,11 @@ class FormDataStream {
             if (res === false)
                 break;
         }
+    }
+    end() {
+        if (this.writable)
+            this.writable.end();
+        this.emit('end');
     }
     /**
      * get field
@@ -128,6 +136,9 @@ class FormDataStream {
                 // @ts-ignore
                 if (filepath.filepath)
                     item.filename = path_1.default.basename(filepath.filepath);
+                // @ts-ignore
+                else if (filepath.path)
+                    item.filename = path_1.default.basename(filepath.path);
                 else
                     item.filename = (new Date()).getTime().toString(36) + Math.random().toString(36).slice(2);
             }
@@ -319,6 +330,7 @@ class FormDataStream {
     }
     _pipeFormDataSync(writable) {
         let _this = this;
+        this.writable = writable;
         let br = "\r\n";
         let bp = '--';
         this.forEach(function (row, fname) {
@@ -361,6 +373,7 @@ class FormDataStream {
     }
     _pipeFormData(writable, cb) {
         let _this = this;
+        this.writable = writable;
         let br = "\r\n";
         let bp = '--';
         let _end = function (err) {
@@ -370,29 +383,33 @@ class FormDataStream {
         forEachObjectAsync(this.data, function (row, fname, rnext) {
             forEachObjectAsync(_this._getFields(fname, row.value), function (val, key, next) {
                 writable.write(bp + _this.boundary + br);
-                if (row.type == FormDataItem_1.TYPE_FILE) {
-                    writable.write('Content-Disposition: form-data; name="' + key + '"; filename="' + row.filename + '"' + br);
-                    writable.write('Content-Type: ' + row.contentType + br + br);
-                    let rs = fs.createReadStream(val);
-                    rs.pipe(writable);
-                    writable.write(br);
-                    if (next)
-                        next();
-                }
-                else if (row.type == FormDataItem_1.TYPE_FILE_STREAM) {
-                    writable.write('Content-Disposition: form-data; name="' + key + '"; filename="' + row.filename + '"' + br);
-                    writable.write('Content-Type: ' + row.contentType + br + br);
-                    row.value.pipe(writable);
-                    writable.write(br);
-                    if (next)
-                        next();
-                }
-                else if (row.type == FormDataItem_1.TYPE_STREAM) {
-                    writable.write("Content-Disposition: form-data; name=\"" + key + '"' + br + br);
-                    row.value.pipe(writable);
-                    writable.write(br);
-                    if (next)
-                        next();
+                if (row.type == FormDataItem_1.TYPE_FILE || row.type == FormDataItem_1.TYPE_FILE_STREAM || row.type == FormDataItem_1.TYPE_STREAM) {
+                    if (row.type == FormDataItem_1.TYPE_FILE || row.type == FormDataItem_1.TYPE_FILE_STREAM) {
+                        writable.write('Content-Disposition: form-data; name="' + key + '"; filename="' + row.filename + '"' + br);
+                        writable.write('Content-Type: ' + row.contentType + br + br);
+                    }
+                    else {
+                        writable.write("Content-Disposition: form-data; name=\"" + key + '"' + br + br);
+                    }
+                    let rstream = row.type == FormDataItem_1.TYPE_FILE ? fs.createReadStream(val) : row.value;
+                    rstream.on('data', function (chunk) {
+                        writable.write(chunk);
+                    });
+                    rstream.on('end', function () {
+                        if (next) {
+                            writable.write(br);
+                            next();
+                            next = null;
+                        }
+                    });
+                    rstream.on('error', function (err) {
+                        if (next) {
+                            writable.write(br);
+                            next();
+                            next = null;
+                        }
+                        _this.emit('error', err);
+                    });
                 }
                 else {
                     writable.write("Content-Disposition: form-data; name=\"" + key + '"' + br + br);
@@ -402,47 +419,62 @@ class FormDataStream {
                 }
             }, rnext);
         }, _end);
-        /*this.forEach(function (row, fname) {
-            _this._getFields(fname, row.value).forEach(function (val, key) {
-                writable.write(bp + _this.boundary + br);
-                if (row.type == TYPE_FILE) {
-                    writable.write('Content-Disposition: form-data; name="' + key + '"; filename="' + row.filename + '"' + br);
-                    writable.write('Content-Type: ' + row.contentType + br + br);
-                    let fd = fs.openSync(val, 'r');
-                    let buf = Buffer.alloc(4096);
-                    let pos = 0;
-                    let len = 0;
-                    do {
-                        len = fs.readSync(fd, buf);
-                        pos = pos + len;
-                        writable.write(buf.slice(0, len));
-                    } while (len > 0);
-
-                    writable.write(br);
+    }
+    _pipeFormURL(writable, cb) {
+        let _this = this;
+        this.writable = writable;
+        let first = true;
+        let _end = function (err) {
+            cb(typeof err == 'undefined' ? null : err);
+        };
+        forEachObjectAsync(this.data, function (row, fname, rnext) {
+            forEachObjectAsync(_this._getFields(fname, row.value), function (val, key, next) {
+                if (!first)
+                    writable.write('&');
+                else
+                    first = false;
+                writable.write(encodeURIComponent(key) + '=');
+                if (row.type == FormDataItem_1.TYPE_FILE || row.type == FormDataItem_1.TYPE_FILE_STREAM) {
+                    writable.write(encodeURIComponent(row.filename + ''));
+                    if (next) {
+                        next();
+                        next = null;
+                    }
                 }
-                else if (row.type == TYPE_FILE_STREAM) {
-                    writable.write('Content-Disposition: form-data; name="' + key + '"; filename="' + row.filename + '"' + br);
-                    writable.write('Content-Type: ' + row.contentType + br + br);
-                    row.value.pipe(writable);
-                    writable.write(br);
-                }
-                else if (row.type == TYPE_STREAM) {
-                    writable.write("Content-Disposition: form-data; name=\"" + key + '"' + br + br);
-                    row.value.pipe(writable);
-                    writable.write(br);
+                else if (row.type == FormDataItem_1.TYPE_STREAM) {
+                    let rstream = row.value;
+                    rstream.on('data', function (chunk) {
+                        if (Buffer.isBuffer(chunk))
+                            chunk = chunk.toString();
+                        writable.write(encodeURIComponent(chunk));
+                    });
+                    rstream.on('end', function () {
+                        if (next) {
+                            next();
+                            next = null;
+                        }
+                    });
+                    rstream.on('error', function (err) {
+                        if (next) {
+                            next();
+                            next = null;
+                        }
+                        _this.emit('error', err);
+                    });
                 }
                 else {
-                    writable.write("Content-Disposition: form-data; name=\"" + key + '"' + br + br);
-                    writable.write(val + br);
+                    writable.write(encodeURIComponent(val));
+                    if (next) {
+                        next();
+                        next = null;
+                    }
                 }
-            });
-        })
-        //----FormDataStream...--\r\n
-        writable.write(bp + this.boundary + bp + br);
-         */
+            }, rnext);
+        }, _end);
     }
-    _pipeFormURL(writable) {
+    _pipeFormURLSync(writable) {
         let _this = this;
+        this.writable = writable;
         let first = true;
         this.forEach(function (row, fname) {
             let fields = _this._getFields(fname, row.value);
@@ -455,6 +487,9 @@ class FormDataStream {
                 }
                 else if (row.type == FormDataItem_1.TYPE_STREAM) {
                     let buf = new URLWriter_1.default(writable);
+                    row.value.on('end', function () {
+                        console.info('end');
+                    });
                     row.value.pipe(buf);
                 }
                 else {
@@ -464,8 +499,56 @@ class FormDataStream {
             });
         });
     }
-    _pipeFormJSON(writable) {
+    _pipeFormJSON(writable, cb) {
         let _this = this;
+        this.writable = writable;
+        let obj = {};
+        let _end = function (err) {
+            writable.write(JSON.stringify(obj));
+            cb(typeof err == 'undefined' ? null : err);
+        };
+        forEachObjectAsync(this.data, function (row, fname, rnext) {
+            forEachObjectAsync(_this._getFields(fname, row.value), function (val, key, next) {
+                if (row.type == FormDataItem_1.TYPE_FILE || row.type == FormDataItem_1.TYPE_FILE_STREAM) {
+                    obj[fname] = row.filename;
+                    if (next) {
+                        next();
+                        next = null;
+                    }
+                }
+                else if (row.type == FormDataItem_1.TYPE_STREAM) {
+                    let bw = new BufferWriter_1.default();
+                    let rstream = row.value;
+                    rstream.pipe(bw);
+                    rstream.on('end', function () {
+                        obj[fname] = bw.toString();
+                        if (next) {
+                            next();
+                            next = null;
+                        }
+                    });
+                    rstream.on('error', function (err) {
+                        obj[fname] = null;
+                        if (next) {
+                            next();
+                            next = null;
+                        }
+                        _this.emit('error', err);
+                    });
+                }
+                else {
+                    obj[fname] = row.value;
+                    if (next) {
+                        next();
+                        next = null;
+                    }
+                }
+            }, rnext);
+        }, _end);
+    }
+    _pipeFormJSONSync(writable) {
+        let _this = this;
+        this.writable = writable;
         let obj = {};
         this.forEach(function (row, fname) {
             if (row.type == FormDataItem_1.TYPE_FILE || row.type == FormDataItem_1.TYPE_FILE_STREAM) {
@@ -484,22 +567,31 @@ class FormDataStream {
     }
     pipe(writable, cb) {
         let ct = this.getContentType();
-        if (ct.indexOf('form-data') > -1) {
-            this._pipeFormData(writable, function (err) {
-                if (cb)
-                    cb(err);
-            });
-        }
-        else if (ct.indexOf('x-www-form-urlencoded') > -1) {
-            this._pipeFormURL(writable);
-            if (cb)
-                cb(null);
-        }
-        else if (ct.indexOf('application/json') > -1) {
-            this._pipeFormJSON(writable);
-            if (cb)
-                cb(null);
-        }
+        let _this = this;
+        this.writable = writable;
+        process.nextTick(function () {
+            if (ct.indexOf('form-data') > -1) {
+                _this._pipeFormData(writable, function (err) {
+                    _this.end();
+                    if (cb)
+                        cb(err);
+                });
+            }
+            else if (ct.indexOf('x-www-form-urlencoded') > -1) {
+                _this._pipeFormURL(writable, function (err) {
+                    _this.end();
+                    if (cb)
+                        cb(err);
+                });
+            }
+            else if (ct.indexOf('application/json') > -1) {
+                _this._pipeFormJSON(writable, function (err) {
+                    _this.end();
+                    if (cb)
+                        cb(err);
+                });
+            }
+        });
         return writable;
     }
     pipeSync(writable) {
@@ -508,11 +600,12 @@ class FormDataStream {
             this._pipeFormDataSync(writable);
         }
         else if (ct.indexOf('x-www-form-urlencoded') > -1) {
-            this._pipeFormURL(writable);
+            this._pipeFormURLSync(writable);
         }
         else if (ct.indexOf('application/json') > -1) {
-            this._pipeFormJSON(writable);
+            this._pipeFormJSONSync(writable);
         }
+        this.end();
         return writable;
     }
 }

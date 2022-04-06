@@ -5,12 +5,17 @@ import BufferWriter from "./BufferWriter";
 import URLWriter from "./URLWriter";
 import {Readable} from "stream";
 import {FormData, FormDataItem, TYPE_FILE, TYPE_FILE_STREAM, TYPE_STREAM, TYPE_VAR} from './FormDataItem';
+import EventEmitter from "events";
+import {write} from "fs";
 
 function forEachObjectAsync(obj: any, handle: (val: any, key: any, next:() => void) => boolean|void, end: () => void) {
 	if (!obj) end();
+
 	let keys = Object.keys(obj);
 	let _loop = function () {
-		if (keys.length == 0) end();
+		if (keys.length == 0) {
+			end();
+		}
 		let key = keys.shift();
 		if (typeof key !== 'undefined') {
 			handle(obj[key], key, _loop);
@@ -28,13 +33,15 @@ function forEachObjectSync(obj: any, handle: (val: any, key: any) => boolean|voi
 }
 
 
-class FormDataStream {
+class FormDataStream extends EventEmitter {
 	private contentType = 'auto';
 	private boundary: string;
 	private defaultMimeType = 'binary/octet-stream';
 	private data: FormData = {};
+	private writable?: Writable;
 
 	constructor(data?: any) {
+		super();
 		this.boundary = '----FormDataStream'+(new Date()).getTime().toString(36) + Math.random().toString(36).slice(2);
 		if (data && typeof data == 'object') {
 			for (let i in data) this.set(i, data[i]);
@@ -43,7 +50,7 @@ class FormDataStream {
 
 	toString(encoding?: BufferEncoding) {
 		let writer = new BufferWriter();
-		this.pipe(writer);
+		this.pipeSync(writer);
 		return writer.toString(encoding);
 	}
 
@@ -52,6 +59,11 @@ class FormDataStream {
 			let res = fn(this.data[i], i);
 			if (res === false) break;
 		}
+	}
+
+	end() {
+		if (this.writable) this.writable.end();
+		this.emit('end');
 	}
 
 	/**
@@ -114,6 +126,8 @@ class FormDataStream {
 			if (!item.filename) {
 				// @ts-ignore
 				if (filepath.filepath) item.filename = path.basename(filepath.filepath);
+				// @ts-ignore
+				else if (filepath.path) item.filename = path.basename(filepath.path);
 				else item.filename = (new Date()).getTime().toString(36) + Math.random().toString(36).slice(2);
 			}
 
@@ -316,6 +330,7 @@ class FormDataStream {
 
 	_pipeFormDataSync(writable: Writable) {
 		let _this = this;
+		this.writable = writable;
 		let br = "\r\n";
 		let bp = '--';
 
@@ -361,6 +376,7 @@ class FormDataStream {
 
 	_pipeFormData(writable: Writable, cb: (err: Error|null) => void) {
 		let _this = this;
+		this.writable = writable;
 		let br = "\r\n";
 		let bp = '--';
 
@@ -376,26 +392,34 @@ class FormDataStream {
 					_this._getFields(fname, row.value),
 					function (val: any, key: string, next: Function|null) {
 						writable.write(bp + _this.boundary + br);
-						if (row.type == TYPE_FILE) {
-							writable.write('Content-Disposition: form-data; name="' + key + '"; filename="' + row.filename + '"' + br);
-							writable.write('Content-Type: ' + row.contentType + br + br);
-							let rs = fs.createReadStream(val);
-							rs.pipe(writable);
-							writable.write(br);
-							if (next) next();
-						}
-						else if (row.type == TYPE_FILE_STREAM) {
-							writable.write('Content-Disposition: form-data; name="' + key + '"; filename="' + row.filename + '"' + br);
-							writable.write('Content-Type: ' + row.contentType + br + br);
-							row.value.pipe(writable);
-							writable.write(br);
-							if (next) next();
-						}
-						else if (row.type == TYPE_STREAM) {
-							writable.write("Content-Disposition: form-data; name=\"" + key + '"' + br + br);
-							row.value.pipe(writable);
-							writable.write(br);
-							if (next) next();
+						if (row.type == TYPE_FILE || row.type == TYPE_FILE_STREAM || row.type == TYPE_STREAM) {
+							if (row.type == TYPE_FILE || row.type == TYPE_FILE_STREAM) {
+								writable.write('Content-Disposition: form-data; name="' + key + '"; filename="' + row.filename + '"' + br);
+								writable.write('Content-Type: ' + row.contentType + br + br);
+							}
+							else {
+								writable.write("Content-Disposition: form-data; name=\"" + key + '"' + br + br);
+							}
+
+							let rstream : Readable = row.type == TYPE_FILE ? fs.createReadStream(val) : row.value;
+							rstream.on('data', function (chunk: string|Buffer) {
+								writable.write(chunk);
+							});
+							rstream.on('end', function () {
+								if (next) {
+									writable.write(br);
+									next();
+									next = null;
+								}
+							});
+							rstream.on('error', function (err?: Error | null) {
+								if (next) {
+									writable.write(br);
+									next();
+									next = null;
+								}
+								_this.emit('error', err);
+							});
 						}
 						else {
 							writable.write("Content-Disposition: form-data; name=\"" + key + '"' + br + br);
@@ -410,8 +434,71 @@ class FormDataStream {
 		);
 	}
 
-	_pipeFormURL(writable: Writable) {
+	_pipeFormURL(writable: Writable, cb: (err: Error|null) => void) {
 		let _this = this;
+		this.writable = writable;
+		let first = true;
+		let _end = function (err?: Error|null) {
+			cb(typeof err == 'undefined' ? null : err);
+		};
+
+		forEachObjectAsync(
+			this.data,
+			function (row: FormDataItem, fname: string, rnext: () => void) {
+				forEachObjectAsync(
+					_this._getFields(fname, row.value),
+					function (val: any, key: string, next: Function|null) {
+						if (!first) writable.write('&');
+						else first = false;
+
+						writable.write(encodeURIComponent(key)+'=');
+
+						if (row.type == TYPE_FILE || row.type == TYPE_FILE_STREAM) {
+							writable.write(encodeURIComponent(row.filename + ''));
+							if (next) {
+								next();
+								next = null;
+							}
+						}
+						else if (row.type == TYPE_STREAM) {
+							let rstream = row.value;
+							rstream.on('data', function (chunk: string|Buffer) {
+								if (Buffer.isBuffer(chunk)) chunk = chunk.toString();
+								writable.write(encodeURIComponent(chunk));
+
+							});
+							rstream.on('end', function () {
+								if (next) {
+									next();
+									next = null;
+								}
+							});
+							rstream.on('error', function (err?: Error | null) {
+								if (next) {
+									next();
+									next = null;
+								}
+								_this.emit('error', err);
+							});
+						}
+						else {
+							writable.write(encodeURIComponent(val));
+							if (next) {
+								next();
+								next = null;
+							}
+						}
+					},
+					rnext
+				);
+			},
+			_end
+		);
+	}
+
+	_pipeFormURLSync(writable: Writable) {
+		let _this = this;
+		this.writable = writable;
 		let first = true;
 		this.forEach(function (row, fname) {
 			let fields = _this._getFields(fname, row.value);
@@ -424,6 +511,9 @@ class FormDataStream {
 				}
 				else if (row.type == TYPE_STREAM) {
 					let buf = new URLWriter(writable);
+					row.value.on('end', function () {
+						console.info('end');
+					})
 					row.value.pipe(buf);
 				}
 				else {
@@ -435,8 +525,67 @@ class FormDataStream {
 		});
 	}
 
-	_pipeFormJSON(writable: Writable) {
+	_pipeFormJSON(writable: Writable, cb: (err: Error|null) => void) {
 		let _this = this;
+		this.writable = writable;
+		let obj: any = {};
+
+		let _end = function (err?: Error|null) {
+			writable.write(JSON.stringify(obj));
+			cb(typeof err == 'undefined' ? null : err);
+		};
+
+		forEachObjectAsync(
+			this.data,
+			function (row: FormDataItem, fname: string, rnext: () => void) {
+				forEachObjectAsync(
+					_this._getFields(fname, row.value),
+					function (val: any, key: string, next: Function|null) {
+						if (row.type == TYPE_FILE || row.type == TYPE_FILE_STREAM) {
+							obj[fname] = row.filename;
+							if (next) {
+								next();
+								next = null;
+							}
+						}
+						else if (row.type == TYPE_STREAM) {
+							let bw = new BufferWriter();
+							let rstream = row.value;
+							rstream.pipe(bw);
+							rstream.on('end', function () {
+								obj[fname] = bw.toString();
+								if (next) {
+									next();
+									next = null;
+								}
+							});
+							rstream.on('error', function (err?: Error | null) {
+								obj[fname] = null;
+								if (next) {
+									next();
+									next = null;
+								}
+								_this.emit('error', err);
+							});
+						}
+						else {
+							obj[fname] = row.value;
+							if (next) {
+								next();
+								next = null;
+							}
+						}
+					},
+					rnext
+				);
+			},
+			_end
+		);
+	}
+
+	_pipeFormJSONSync(writable: Writable) {
+		let _this = this;
+		this.writable = writable;
 		let obj: any = {};
 		this.forEach(function (row, fname) {
 			if (row.type == TYPE_FILE || row.type == TYPE_FILE_STREAM) {
@@ -456,19 +605,28 @@ class FormDataStream {
 
 	pipe(writable: Writable, cb?: (err: Error|null) => void): Writable {
 		let ct = this.getContentType();
-		if (ct.indexOf('form-data') > -1) {
-			this._pipeFormData(writable, function (err) {
-				if (cb) cb(err);
-			});
-		}
-		else if (ct.indexOf('x-www-form-urlencoded') > -1) {
-			this._pipeFormURL(writable);
-			if (cb) cb(null);
-		}
-		else if (ct.indexOf('application/json') > -1) {
-			this._pipeFormJSON(writable);
-			if (cb) cb(null);
-		}
+		let _this = this;
+		this.writable = writable;
+		process.nextTick(function () {
+			if (ct.indexOf('form-data') > -1) {
+				_this._pipeFormData(writable, function (err) {
+					_this.end();
+					if (cb) cb(err);
+				});
+			}
+			else if (ct.indexOf('x-www-form-urlencoded') > -1) {
+				_this._pipeFormURL(writable, function (err) {
+					_this.end();
+					if (cb) cb(err);
+				});
+			}
+			else if (ct.indexOf('application/json') > -1) {
+				_this._pipeFormJSON(writable, function (err) {
+					_this.end();
+					if (cb) cb(err);
+				});
+			}
+		});
 
 		return writable;
 	}
@@ -479,11 +637,12 @@ class FormDataStream {
 			this._pipeFormDataSync(writable);
 		}
 		else if (ct.indexOf('x-www-form-urlencoded') > -1) {
-			this._pipeFormURL(writable);
+			this._pipeFormURLSync(writable);
 		}
 		else if (ct.indexOf('application/json') > -1) {
-			this._pipeFormJSON(writable);
+			this._pipeFormJSONSync(writable);
 		}
+		this.end();
 		return writable;
 	}
 }
