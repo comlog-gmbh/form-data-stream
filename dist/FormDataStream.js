@@ -75,6 +75,13 @@ class FormDataStream extends events_1.default {
                 break;
         }
     }
+    /**
+     * Get all field names set
+     * @return {Array}
+     */
+    keys() {
+        return Object.keys(this.data);
+    }
     end() {
         if (this.writable)
             this.writable.end();
@@ -115,12 +122,26 @@ class FormDataStream extends events_1.default {
         }
         return this.data[fname] = item;
     }
+    /**
+     * Delete field
+     * @param {string} fname
+     */
     delete(fname) {
         delete this.data[fname];
     }
+    /**
+     * Clear all fields and files
+     */
     clear() {
         this.data = {};
     }
+    /**
+     * Set file to upload
+     * @param {string} fname Fieldname
+     * @param {string|FormDataItem|Readable} filepath Filepath or Stream
+     * @param {string} [filename] File name for upload. Good way for streams.
+     * @param {string} [contentType] File content time. Default: binary/octet-stream
+     */
     setFile(fname, filepath, filename, contentType = this.defaultMimeType) {
         let item = {
             type: FormDataItem_1.TYPE_FILE,
@@ -156,7 +177,11 @@ class FormDataStream extends events_1.default {
         }
         return this.set(fname, item);
     }
-    setContentType(contentType) {
+    /**
+     * Set ContentType manually.
+     * @param {string} [contentType] Default: auto
+     */
+    setContentType(contentType = 'auto') {
         if (contentType.toUpperCase().indexOf('BOUNDARY=') > -1) {
             let m = contentType.match(/.*BOUNDARY=([^;$]+).*/i);
             if (m)
@@ -164,6 +189,10 @@ class FormDataStream extends events_1.default {
         }
         this.contentType = contentType;
     }
+    /**
+     * Get content type for current dataset.
+     * Returns your ContentType if set manually.
+     */
     getContentType() {
         let res = this.contentType;
         let _this = this;
@@ -217,6 +246,10 @@ class FormDataStream extends events_1.default {
         }
         return res;
     }
+    /**
+     * Calculate content length
+     * @return number -1 is unknown
+     */
     getContentLength() {
         let _this = this;
         let ct = this.getContentType();
@@ -307,8 +340,8 @@ class FormDataStream extends events_1.default {
         return res;
     }
     /**
-     * Generate headers
-     * @param headers
+     * Generate / update headers
+     * @param {{}} [headers]
      */
     headers(headers) {
         let res = {};
@@ -565,6 +598,11 @@ class FormDataStream extends events_1.default {
         });
         writable.write(JSON.stringify(obj));
     }
+    /**
+     * Piping data to requiest (Writable)
+     * @param {Writable} writable
+     * @param {(err: Error|null)} [cb]
+     */
     pipe(writable, cb) {
         let ct = this.getContentType();
         let _this = this;
@@ -594,6 +632,10 @@ class FormDataStream extends events_1.default {
         });
         return writable;
     }
+    /**
+     * Piping data to requiest (Writable) synchronous
+     * @param {Writable} writable
+     */
     pipeSync(writable) {
         let ct = this.getContentType();
         if (ct.indexOf('form-data') > -1) {

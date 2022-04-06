@@ -6,7 +6,6 @@ import URLWriter from "./URLWriter";
 import {Readable} from "stream";
 import {FormData, FormDataItem, TYPE_FILE, TYPE_FILE_STREAM, TYPE_STREAM, TYPE_VAR} from './FormDataItem';
 import EventEmitter from "events";
-import {write} from "fs";
 
 function forEachObjectAsync(obj: any, handle: (val: any, key: any, next:() => void) => boolean|void, end: () => void) {
 	if (!obj) end();
@@ -61,6 +60,14 @@ class FormDataStream extends EventEmitter {
 		}
 	}
 
+	/**
+	 * Get all field names set
+	 * @return {Array}
+	 */
+	keys() {
+		return Object.keys(this.data);
+	}
+
 	end() {
 		if (this.writable) this.writable.end();
 		this.emit('end');
@@ -103,14 +110,28 @@ class FormDataStream extends EventEmitter {
 		return this.data[fname] = item;
 	}
 
+	/**
+	 * Delete field
+	 * @param {string} fname
+	 */
 	delete(fname: string) {
 		delete this.data[fname];
 	}
 
+	/**
+	 * Clear all fields and files
+	 */
 	clear() {
 		this.data = {};
 	}
 
+	/**
+	 * Set file to upload
+	 * @param {string} fname Fieldname
+	 * @param {string|FormDataItem|Readable} filepath Filepath or Stream
+	 * @param {string} [filename] File name for upload. Good way for streams.
+	 * @param {string} [contentType] File content time. Default: binary/octet-stream
+	 */
 	setFile(fname: string, filepath: string|FormDataItem|Readable, filename?:string, contentType: string = this.defaultMimeType) {
 		let item: FormDataItem = {
 			type: TYPE_FILE,
@@ -148,7 +169,11 @@ class FormDataStream extends EventEmitter {
 		return this.set(fname, item);
 	}
 
-	setContentType(contentType: string) {
+	/**
+	 * Set ContentType manually.
+	 * @param {string} [contentType] Default: auto
+	 */
+	setContentType(contentType: string = 'auto') {
 		if (contentType.toUpperCase().indexOf('BOUNDARY=') > -1) {
 			let m = contentType.match(/.*BOUNDARY=([^;$]+).*/i)
 			if (m) this.boundary = m[1].trim();
@@ -156,6 +181,10 @@ class FormDataStream extends EventEmitter {
 		this.contentType = contentType;
 	}
 
+	/**
+	 * Get content type for current dataset.
+	 * Returns your ContentType if set manually.
+	 */
 	getContentType() {
 		let res = this.contentType;
 		let _this = this;
@@ -211,6 +240,10 @@ class FormDataStream extends EventEmitter {
 		return res;
 	}
 
+	/**
+	 * Calculate content length
+	 * @return number -1 is unknown
+	 */
 	getContentLength(): number {
 		let _this = this;
 		let ct = this.getContentType();
@@ -305,8 +338,8 @@ class FormDataStream extends EventEmitter {
 	}
 
 	/**
-	 * Generate headers
-	 * @param headers
+	 * Generate / update headers
+	 * @param {{}} [headers]
 	 */
 	headers(headers?: any): Object|any {
 		let res: any = {};
@@ -603,6 +636,11 @@ class FormDataStream extends EventEmitter {
 		writable.write(JSON.stringify(obj));
 	}
 
+	/**
+	 * Piping data to requiest (Writable)
+	 * @param {Writable} writable
+	 * @param {(err: Error|null)} [cb]
+	 */
 	pipe(writable: Writable, cb?: (err: Error|null) => void): Writable {
 		let ct = this.getContentType();
 		let _this = this;
@@ -631,6 +669,10 @@ class FormDataStream extends EventEmitter {
 		return writable;
 	}
 
+	/**
+	 * Piping data to requiest (Writable) synchronous
+	 * @param {Writable} writable
+	 */
 	pipeSync(writable: Writable): Writable {
 		let ct = this.getContentType();
 		if (ct.indexOf('form-data') > -1) {
@@ -642,6 +684,7 @@ class FormDataStream extends EventEmitter {
 		else if (ct.indexOf('application/json') > -1) {
 			this._pipeFormJSONSync(writable);
 		}
+
 		this.end();
 		return writable;
 	}
