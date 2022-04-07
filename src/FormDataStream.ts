@@ -32,7 +32,7 @@ function forEachObjectSync(obj: any, handle: (val: any, key: any) => boolean|voi
 }
 
 
-class FormDataStream extends EventEmitter {
+export class FormDataStream extends EventEmitter {
 	private contentType = 'auto';
 	private boundary: string;
 	private defaultMimeType = 'binary/octet-stream';
@@ -689,5 +689,3 @@ class FormDataStream extends EventEmitter {
 		return writable;
 	}
 }
-
-export = FormDataStream;

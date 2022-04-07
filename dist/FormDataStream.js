@@ -21,6 +21,8 @@ var __importStar = (this && this.__importStar) || function (mod) {
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.FormDataStream = void 0;
 const path_1 = __importDefault(require("path"));
 const fs = __importStar(require("fs"));
 const BufferWriter_1 = __importDefault(require("./BufferWriter"));
@@ -651,5 +653,5 @@ class FormDataStream extends events_1.default {
         return writable;
     }
 }
-module.exports = FormDataStream;
+exports.FormDataStream = FormDataStream;
 //# sourceMappingURL=FormDataStream.js.map

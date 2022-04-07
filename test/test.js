@@ -3,8 +3,7 @@ var StreamSync = require('stream-sync');
 
 // Sync file upload via stream
 const http = require('http');
-const FormDataStream = require('../');
-var StreamSync = require('stream-sync');
+const {FormDataStream} = require('../');
 const BufferWriter = require("../dist/BufferWriter");
 
 var postData = new FormDataStream();

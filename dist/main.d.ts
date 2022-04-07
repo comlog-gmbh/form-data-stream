@@ -1,2 +1,1 @@
-import FormDataStream from './FormDataStream';
-export = FormDataStream;
+export * from './FormDataStream';

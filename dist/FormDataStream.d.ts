@@ -3,7 +3,7 @@ import { Writable } from "stream";
 import { Readable } from "stream";
 import { FormDataItem } from './FormDataItem';
 import EventEmitter from "events";
-declare class FormDataStream extends EventEmitter {
+export declare class FormDataStream extends EventEmitter {
     private contentType;
     private boundary;
     private defaultMimeType;
@@ -86,4 +86,3 @@ declare class FormDataStream extends EventEmitter {
      */
     pipeSync(writable: Writable): Writable;
 }
-export = FormDataStream;
