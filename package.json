@@ -1,6 +1,6 @@
 {
   "name": "form-data-stream",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Form data writer compatible with default http, https and atomics-http",
   "main": "dist/main.js",
   "scripts": {

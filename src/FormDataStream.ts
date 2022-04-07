@@ -311,12 +311,12 @@ export class FormDataStream extends EventEmitter {
 					if (!first) res += 1;
 					else first = false;
 
-					res += encodeURIComponent(key).length + 1;
+					res += Buffer.byteLength(encodeURIComponent(key)) + 1;
 					if (row.type == TYPE_FILE || row.type == TYPE_FILE_STREAM) {
-						res += encodeURIComponent(row.filename+'').length;
+						res += Buffer.byteLength(encodeURIComponent(row.filename+''));
 					}
 					else {
-						res += encodeURIComponent(val).length;
+						res += Buffer.byteLength(encodeURIComponent(val));
 					}
 				});
 			});
@@ -332,7 +332,7 @@ export class FormDataStream extends EventEmitter {
 				}
 			});
 			let data = JSON.stringify(obj);
-			res = data.length;
+			res = Buffer.byteLength(data);
 		}
 		return res;
 	}
