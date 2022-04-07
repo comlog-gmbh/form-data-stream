@@ -132,4 +132,6 @@ var req = https.request('https://localhost/upload.php', options);
 
 // Write date
 postData.pipeSync(req);
+// pipeSync does not end the request
+req.end();
 ```

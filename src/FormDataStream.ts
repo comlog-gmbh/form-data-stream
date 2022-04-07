@@ -68,8 +68,8 @@ export class FormDataStream extends EventEmitter {
 		return Object.keys(this.data);
 	}
 
-	end() {
-		if (this.writable) this.writable.end();
+	end(ignoreWrtier?: boolean) {
+		if (!ignoreWrtier && this.writable) this.writable.end();
 		this.emit('end');
 	}
 
@@ -645,24 +645,20 @@ export class FormDataStream extends EventEmitter {
 		let ct = this.getContentType();
 		let _this = this;
 		this.writable = writable;
+		let _endAndCb = function (err: Error|null) {
+			_this.end();
+			if (cb) cb(err);
+		}
+
 		process.nextTick(function () {
 			if (ct.indexOf('form-data') > -1) {
-				_this._pipeFormData(writable, function (err) {
-					_this.end();
-					if (cb) cb(err);
-				});
+				_this._pipeFormData(writable, _endAndCb);
 			}
 			else if (ct.indexOf('x-www-form-urlencoded') > -1) {
-				_this._pipeFormURL(writable, function (err) {
-					_this.end();
-					if (cb) cb(err);
-				});
+				_this._pipeFormURL(writable, _endAndCb);
 			}
 			else if (ct.indexOf('application/json') > -1) {
-				_this._pipeFormJSON(writable, function (err) {
-					_this.end();
-					if (cb) cb(err);
-				});
+				_this._pipeFormJSON(writable, _endAndCb);
 			}
 		});
 
@@ -685,7 +681,7 @@ export class FormDataStream extends EventEmitter {
 			this._pipeFormJSONSync(writable);
 		}
 
-		this.end();
+		this.end(true);
 		return writable;
 	}
 }

@@ -84,8 +84,8 @@ class FormDataStream extends events_1.default {
     keys() {
         return Object.keys(this.data);
     }
-    end() {
-        if (this.writable)
+    end(ignoreWrtier) {
+        if (!ignoreWrtier && this.writable)
             this.writable.end();
         this.emit('end');
     }
@@ -609,27 +609,20 @@ class FormDataStream extends events_1.default {
         let ct = this.getContentType();
         let _this = this;
         this.writable = writable;
+        let _endAndCb = function (err) {
+            _this.end();
+            if (cb)
+                cb(err);
+        };
         process.nextTick(function () {
             if (ct.indexOf('form-data') > -1) {
-                _this._pipeFormData(writable, function (err) {
-                    _this.end();
-                    if (cb)
-                        cb(err);
-                });
+                _this._pipeFormData(writable, _endAndCb);
             }
             else if (ct.indexOf('x-www-form-urlencoded') > -1) {
-                _this._pipeFormURL(writable, function (err) {
-                    _this.end();
-                    if (cb)
-                        cb(err);
-                });
+                _this._pipeFormURL(writable, _endAndCb);
             }
             else if (ct.indexOf('application/json') > -1) {
-                _this._pipeFormJSON(writable, function (err) {
-                    _this.end();
-                    if (cb)
-                        cb(err);
-                });
+                _this._pipeFormJSON(writable, _endAndCb);
             }
         });
         return writable;
@@ -649,7 +642,7 @@ class FormDataStream extends events_1.default {
         else if (ct.indexOf('application/json') > -1) {
             this._pipeFormJSONSync(writable);
         }
-        this.end();
+        this.end(true);
         return writable;
     }
 }

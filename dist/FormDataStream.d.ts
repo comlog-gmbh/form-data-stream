@@ -17,7 +17,7 @@ export declare class FormDataStream extends EventEmitter {
      * @return {Array}
      */
     keys(): string[];
-    end(): void;
+    end(ignoreWrtier?: boolean): void;
     /**
      * get field
      * @param {string} fname
