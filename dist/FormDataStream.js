@@ -70,6 +70,13 @@ class FormDataStream extends events_1.default {
         this.pipeSync(writer);
         return writer.toString(encoding);
     }
+    toJSON() {
+        let obj = {};
+        this.forEach(function (item, fname) {
+            obj[fname] = item.value;
+        });
+        return JSON.stringify(obj);
+    }
     forEach(fn) {
         for (let i in this.data) {
             let res = fn(this.data[i], i);
@@ -602,7 +609,7 @@ class FormDataStream extends events_1.default {
     }
     /**
      * Piping data to requiest (Writable)
-     * @param {Writable} writable
+     * @param {Writable|any} writable
      * @param {(err: Error|null)} [cb]
      */
     pipe(writable, cb) {
@@ -629,7 +636,7 @@ class FormDataStream extends events_1.default {
     }
     /**
      * Piping data to requiest (Writable) synchronous
-     * @param {Writable} writable
+     * @param {Writable|any} writable
      */
     pipeSync(writable) {
         let ct = this.getContentType();

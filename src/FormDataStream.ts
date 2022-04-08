@@ -53,6 +53,15 @@ export class FormDataStream extends EventEmitter {
 		return writer.toString(encoding);
 	}
 
+	toJSON(): string {
+		let obj: any = {};
+		this.forEach(function (item, fname) {
+			obj[fname] = item.value;
+		});
+
+		return JSON.stringify(obj);
+	}
+
 	forEach(fn: (val: any, key: string) => boolean|void) {
 		for (let i in this.data) {
 			let res = fn(this.data[i], i);

@@ -11,6 +11,7 @@ export declare class FormDataStream extends EventEmitter {
     private writable?;
     constructor(data?: any);
     toString(encoding?: BufferEncoding): string;
+    toJSON(): string;
     forEach(fn: (val: any, key: string) => boolean | void): void;
     /**
      * Get all field names set
@@ -68,21 +69,21 @@ export declare class FormDataStream extends EventEmitter {
      * @param {{}} [headers]
      */
     headers(headers?: any): Object | any;
-    _pipeFormDataSync(writable: Writable): void;
-    _pipeFormData(writable: Writable, cb: (err: Error | null) => void): void;
-    _pipeFormURL(writable: Writable, cb: (err: Error | null) => void): void;
-    _pipeFormURLSync(writable: Writable): void;
-    _pipeFormJSON(writable: Writable, cb: (err: Error | null) => void): void;
-    _pipeFormJSONSync(writable: Writable): void;
+    _pipeFormDataSync(writable: Writable | any): void;
+    _pipeFormData(writable: Writable | any, cb: (err: Error | null) => void): void;
+    _pipeFormURL(writable: Writable | any, cb: (err: Error | null) => void): void;
+    _pipeFormURLSync(writable: Writable | any): void;
+    _pipeFormJSON(writable: Writable | any, cb: (err: Error | null) => void): void;
+    _pipeFormJSONSync(writable: Writable | any): void;
     /**
      * Piping data to requiest (Writable)
-     * @param {Writable} writable
+     * @param {Writable|any} writable
      * @param {(err: Error|null)} [cb]
      */
-    pipe(writable: Writable, cb?: (err: Error | null) => void): Writable;
+    pipe(writable: Writable | any, cb?: (err: Error | null) => void): Writable | any;
     /**
      * Piping data to requiest (Writable) synchronous
-     * @param {Writable} writable
+     * @param {Writable|any} writable
      */
-    pipeSync(writable: Writable): Writable;
+    pipeSync(writable: Writable | any): Writable | any;
 }
