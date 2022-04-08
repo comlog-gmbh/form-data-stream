@@ -70,12 +70,12 @@ class FormDataStream extends events_1.default {
         this.pipeSync(writer);
         return writer.toString(encoding);
     }
-    toJSON() {
+    toJSON(replacer, space) {
         let obj = {};
         this.forEach(function (item, fname) {
             obj[fname] = item.value;
         });
-        return JSON.stringify(obj);
+        return JSON.stringify(obj, replacer, space);
     }
     forEach(fn) {
         for (let i in this.data) {

@@ -11,7 +11,7 @@ export declare class FormDataStream extends EventEmitter {
     private writable?;
     constructor(data?: any);
     toString(encoding?: BufferEncoding): string;
-    toJSON(): string;
+    toJSON(replacer?: any, space?: any): string;
     forEach(fn: (val: any, key: string) => boolean | void): void;
     /**
      * Get all field names set
