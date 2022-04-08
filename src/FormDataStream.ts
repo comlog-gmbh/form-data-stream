@@ -37,7 +37,7 @@ export class FormDataStream extends EventEmitter {
 	private boundary: string;
 	private defaultMimeType = 'binary/octet-stream';
 	private data: FormData = {};
-	private writable?: Writable;
+	private writable?: Writable|any;
 
 	constructor(data?: any) {
 		super();
@@ -361,7 +361,7 @@ export class FormDataStream extends EventEmitter {
 		return res
 	}
 
-	_pipeFormDataSync(writable: Writable) {
+	_pipeFormDataSync(writable: Writable|any) {
 		let _this = this;
 		this.writable = writable;
 		let br = "\r\n";
@@ -407,7 +407,7 @@ export class FormDataStream extends EventEmitter {
 		writable.write(bp + this.boundary + bp + br);
 	}
 
-	_pipeFormData(writable: Writable, cb: (err: Error|null) => void) {
+	_pipeFormData(writable: Writable|any, cb: (err: Error|null) => void) {
 		let _this = this;
 		this.writable = writable;
 		let br = "\r\n";
@@ -467,7 +467,7 @@ export class FormDataStream extends EventEmitter {
 		);
 	}
 
-	_pipeFormURL(writable: Writable, cb: (err: Error|null) => void) {
+	_pipeFormURL(writable: Writable|any, cb: (err: Error|null) => void) {
 		let _this = this;
 		this.writable = writable;
 		let first = true;
@@ -529,7 +529,7 @@ export class FormDataStream extends EventEmitter {
 		);
 	}
 
-	_pipeFormURLSync(writable: Writable) {
+	_pipeFormURLSync(writable: Writable|any) {
 		let _this = this;
 		this.writable = writable;
 		let first = true;
@@ -558,7 +558,7 @@ export class FormDataStream extends EventEmitter {
 		});
 	}
 
-	_pipeFormJSON(writable: Writable, cb: (err: Error|null) => void) {
+	_pipeFormJSON(writable: Writable|any, cb: (err: Error|null) => void) {
 		let _this = this;
 		this.writable = writable;
 		let obj: any = {};
@@ -616,7 +616,7 @@ export class FormDataStream extends EventEmitter {
 		);
 	}
 
-	_pipeFormJSONSync(writable: Writable) {
+	_pipeFormJSONSync(writable: Writable|any) {
 		let _this = this;
 		this.writable = writable;
 		let obj: any = {};
@@ -638,10 +638,10 @@ export class FormDataStream extends EventEmitter {
 
 	/**
 	 * Piping data to requiest (Writable)
-	 * @param {Writable} writable
+	 * @param {Writable|any} writable
 	 * @param {(err: Error|null)} [cb]
 	 */
-	pipe(writable: Writable, cb?: (err: Error|null) => void): Writable {
+	pipe(writable: Writable|any, cb?: (err: Error|null) => void): Writable|any {
 		let ct = this.getContentType();
 		let _this = this;
 		this.writable = writable;
@@ -667,9 +667,9 @@ export class FormDataStream extends EventEmitter {
 
 	/**
 	 * Piping data to requiest (Writable) synchronous
-	 * @param {Writable} writable
+	 * @param {Writable|any} writable
 	 */
-	pipeSync(writable: Writable): Writable {
+	pipeSync(writable: Writable|any): Writable|any {
 		let ct = this.getContentType();
 		if (ct.indexOf('form-data') > -1) {
 			this._pipeFormDataSync(writable);
