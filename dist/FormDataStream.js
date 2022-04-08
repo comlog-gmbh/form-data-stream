@@ -316,12 +316,12 @@ class FormDataStream extends events_1.default {
                         res += 1;
                     else
                         first = false;
-                    res += encodeURIComponent(key).length + 1;
+                    res += Buffer.byteLength(encodeURIComponent(key)) + 1;
                     if (row.type == FormDataItem_1.TYPE_FILE || row.type == FormDataItem_1.TYPE_FILE_STREAM) {
-                        res += encodeURIComponent(row.filename + '').length;
+                        res += Buffer.byteLength(encodeURIComponent(row.filename + ''));
                     }
                     else {
-                        res += encodeURIComponent(val).length;
+                        res += Buffer.byteLength(encodeURIComponent(val));
                     }
                 });
             });
@@ -337,7 +337,7 @@ class FormDataStream extends events_1.default {
                 }
             });
             let data = JSON.stringify(obj);
-            res = data.length;
+            res = Buffer.byteLength(data);
         }
         return res;
     }

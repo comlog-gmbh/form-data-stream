@@ -8,9 +8,9 @@ Synchronous and asynchronous methods.
 ### Simple POST Request
 ```javascript
 const https = require('https');
-const {FormDataStreamSync} = require('form-data-stream');
+const {FormDataStream} = require('form-data-stream');
 
-var postData = new FormDataStreamSync();
+var postData = new FormDataStream();
 postData.set('test1', 'abcöäü§$%&');
 postData.set('test2', 'yyyyyy');
 postData.set('test[]', '11111');
@@ -34,9 +34,9 @@ postData.pipe(req);
 ### Komplex POST Request
 ```javascript
 const https = require('https');
-const {FormDataStreamSync} = require('form-data-stream');
+const {FormDataStream} = require('form-data-stream');
 
-var postData = new FormDataStreamSync();
+var postData = new FormDataStream();
 postData.set('test1', 'abcöäü§$%&');
 postData.set('test2', ['abc', 'xyz']);
 postData.set('test3', {sub1: 'abc', sub2: 'xyz'});
@@ -61,9 +61,9 @@ postData.pipe(req);
 ### Upload file Request
 ```javascript
 const https = require('https');
-const {FormDataStreamSync} = require('form-data-stream');
+const {FormDataStream} = require('form-data-stream');
 
-var postData = new FormDataStreamSync();
+var postData = new FormDataStream();
 postData.set('test1', 'abcöäü§$%&');
 postData.setFile('file', './upload.txt');
 
@@ -85,9 +85,9 @@ postData.pipe(req);
 ### Field data from stream
 ```javascript
 const https = require('https');
-const {FormDataStreamSync} = require('form-data-stream');
+const {FormDataStream} = require('form-data-stream');
 
-var postData = new FormDataStreamSync();
+var postData = new FormDataStream();
 var stream = fs.createReadStream('./upload.txt');
 postData.set('field_name', stream);
 
@@ -105,9 +105,9 @@ postData.pipe(req);
 ### Syncronous
 ```javascript
 const https = require('https');
-const {FormDataStreamSync} = require('form-data-stream');
+const {FormDataStream} = require('form-data-stream');
 
-var postData = new FormDataStreamSync();
+var postData = new FormDataStream();
 
 // Fileupload
 postData.setFile('file', './upload.txt');
