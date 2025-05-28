@@ -19,8 +19,8 @@
     "post-data",
     "form-data",
     "fileupload",
-	"sync",
-	"async"
+    "sync",
+    "async"
   ],
   "author": "COMLOG GmbH",
   "license": "ISC",

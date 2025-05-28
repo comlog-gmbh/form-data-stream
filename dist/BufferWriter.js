@@ -6,7 +6,16 @@ class BufferWriter extends stream_1.Writable {
         this.data = Buffer.alloc(0);
         this.length = this.data.length;
     }
+    // noinspection JSUnusedGlobalSymbols
+    /**
+     *
+     */
     toBuffer() { return this.data; }
+    // noinspection JSUnusedGlobalSymbols
+    /**
+     *
+     * @param obj
+     */
     writeJSON(obj) {
         this.write(JSON.stringify(obj));
     }
@@ -15,7 +24,7 @@ class BufferWriter extends stream_1.Writable {
         this._write(chunk, this._writableState.encoding);
         return true;
     }
-    _write(chunk, encoding, done) {
+    _write(chunk, _encoding, done) {
         if (typeof chunk == 'string')
             chunk = Buffer.from(chunk);
         this.data = Buffer.concat([this.data, chunk]);

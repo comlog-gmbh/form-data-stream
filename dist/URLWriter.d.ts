@@ -1,4 +1,3 @@
-/// <reference types="node" />
 import { Writable } from "stream";
 declare class URLWriter extends Writable {
     writer: Writable;

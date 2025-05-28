@@ -6,8 +6,17 @@ class BufferWriter extends Writable {
 
 	constructor() { super(); }
 
+	// noinspection JSUnusedGlobalSymbols
+	/**
+	 *
+	 */
 	toBuffer() { return this.data; }
 
+	// noinspection JSUnusedGlobalSymbols
+	/**
+	 *
+	 * @param obj
+	 */
 	writeJSON (obj: any) {
 		this.write(JSON.stringify(obj));
 	}
@@ -18,7 +27,7 @@ class BufferWriter extends Writable {
 		return true;
 	}
 
-	_write (chunk: any, encoding: string, done: Function) {
+	_write (chunk: any, _encoding: string, done: Function) {
 		if (typeof chunk == 'string') chunk = Buffer.from(chunk);
 		this.data = Buffer.concat([this.data, chunk]);
 		this.length = this.data.length;
@@ -27,6 +36,7 @@ class BufferWriter extends Writable {
 
 	toString(encoding? : BufferEncoding | undefined, start?: number, end?: number) {
 		return this.data.toString(encoding, start, end);
+
 	}
 }
 

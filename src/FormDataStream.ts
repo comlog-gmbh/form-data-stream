@@ -388,7 +388,7 @@ export class FormDataStream extends EventEmitter {
 					let pos = 0;
 					let len = 0;
 					do {
-						len = fs.readSync(fd, buf);
+						len = fs.readSync(fd, new Uint8Array(buf));
 						pos = pos + len;
 						writable.write(buf.slice(0, len));
 					} while (len > 0);

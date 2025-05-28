@@ -1,4 +1,3 @@
-/// <reference types="node" />
 import { Writable } from "stream";
 import { Readable } from "stream";
 import { FormDataItem } from './FormDataItem';
